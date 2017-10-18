@@ -28,3 +28,7 @@ compile_times.txt
 
 # CLion cmake directory
 cmake-build-*
+
+# Qt Creator cmake file
+CMakeLists.txt.user
+
