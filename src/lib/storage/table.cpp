@@ -24,6 +24,8 @@ Table::Table(const uint32_t chunk_size) {
 }
 
 void Table::add_column_definition(const std::string& name, const std::string& type) {
+  DebugAssert(std::find(m_columnNames.begin(), m_columnNames.end(), name) == m_columnNames.end(),
+              "ColumnName already exists");
   m_columnNames.push_back(name);
   m_columnTypes.push_back(type);
 }
@@ -76,6 +78,7 @@ ColumnID Table::column_id_by_name(const std::string& column_name) const {
   }
 
   DebugAssert(false, "Column name not found.");
+  // an adequate error handling is missing here
   return ColumnID(-1);
 }
 
