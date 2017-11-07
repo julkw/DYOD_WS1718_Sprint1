@@ -14,25 +14,25 @@
 
 namespace opossum {
 
-void Chunk::add_column(std::shared_ptr<BaseColumn> column) { m_columns.push_back(column); }
+void Chunk::add_column(std::shared_ptr<BaseColumn> column) { _columns.push_back(column); }
 
 void Chunk::append(const std::vector<AllTypeVariant>& values) {
-  DebugAssert(m_columns.size() == values.size(), "Inserted number of columns does not match.");
+  DebugAssert(_columns.size() == values.size(), "Inserted number of columns does not match.");
   for (auto i = 0u; i < values.size(); ++i) {
-    m_columns[i]->append(values[i]);
+    _columns[i]->append(values[i]);
   }
 }
 
-std::shared_ptr<BaseColumn> Chunk::get_column(ColumnID column_id) const { return m_columns[column_id]; }
+std::shared_ptr<BaseColumn> Chunk::get_column(ColumnID column_id) const { return _columns.at(column_id); }
 
-uint16_t Chunk::col_count() const { return m_columns.size(); }
+uint16_t Chunk::col_count() const { return _columns.size(); }
 
 uint32_t Chunk::size() const {
-  if (m_columns.empty()) {
+  if (_columns.empty()) {
     return 0;
   }
 
-  return m_columns[0]->size();
+  return _columns[0]->size();
 }
 
 }  // namespace opossum

@@ -14,24 +14,29 @@ StorageManager& StorageManager::get() {
   return s;
 }
 
-void StorageManager::add_table(const std::string& name, std::shared_ptr<Table> table) { m_tables[name] = table; }
+void StorageManager::add_table(const std::string& name, std::shared_ptr<Table> table) {
+  DebugAssert(!has_table(name), "Table with name " + name + " already exists.");
+  _tables[name] = table;
+}
 
 void StorageManager::drop_table(const std::string& name) {
-  DebugAssert(has_table(name), "Table does not exist.");
-  m_tables.erase(m_tables.find(name));
+  auto num_erased = _tables.erase(name);
+  if (num_erased == 0) {
+    DebugAssert(false, "Table with name " + name + " does not exist.");
+  }
 }
 
 std::shared_ptr<Table> StorageManager::get_table(const std::string& name) const {
-  DebugAssert(has_table(name), "Table does not exist.");
-  return m_tables.at(name);
+  DebugAssert(has_table(name), "Table with name " + name + " does not exist.");
+  return _tables.at(name);
 }
 
-bool StorageManager::has_table(const std::string& name) const { return m_tables.count(name) != 0; }
+bool StorageManager::has_table(const std::string& name) const { return _tables.count(name) != 0; }
 
 std::vector<std::string> StorageManager::table_names() const {
   std::vector<std::string> names;
 
-  for (auto& pair : m_tables) {
+  for (auto& pair : _tables) {
     names.push_back(pair.first);
   }
 
@@ -39,7 +44,7 @@ std::vector<std::string> StorageManager::table_names() const {
 }
 
 void StorageManager::print(std::ostream& out) const {
-  for (const auto& pair : m_tables) {
+  for (const auto& pair : _tables) {
     const auto& table_name = pair.first;
     const auto& table = pair.second;
     out << table_name << std::endl

@@ -80,11 +80,11 @@ class Table : private Noncopyable {
   void create_new_chunk();
 
  protected:
-  std::vector<std::string> m_columnNames;
-  std::vector<std::string> m_columnTypes;
+  std::vector<std::string> _columnNames;
+  std::vector<std::string> _columnTypes;
 
-  std::vector<Chunk> m_chunks;
+  std::vector<Chunk> _chunks;
 
-  unsigned int m_chunkSize;
+  uint32_t _chunkSize;
 };
 }  // namespace opossum
