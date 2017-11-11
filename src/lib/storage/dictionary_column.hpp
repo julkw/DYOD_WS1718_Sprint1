@@ -4,9 +4,13 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <set>
+#include <map>
 
 #include "all_type_variant.hpp"
 #include "types.hpp"
+#include "value_column.hpp"
+#include "base_attribute_vector.hpp"
 
 namespace opossum {
 
@@ -33,23 +37,34 @@ class DictionaryColumn : public BaseColumn {
             throw std::logic_error("Not the right type of ValueColumn");
         }
 
-        std::set<T> distinctValues;
+        // initialize vectors
+        _dictionary = std::make_shared<std::vector<T>>();
+        _attribute_vector = std::make_shared<BaseAttributeVector>();
 
-        for(auto i = 0u; i < value_column->size(); i++)
-        {
-            distinctValues.insert(value_column.get()[i]);
-        }
+        const auto& values = value_column->values();
+        std::set<T> distinctValues(values.begin(), values.end());
 
-        for(auto& value : distinctValues)
-        {
-            _dictionary->push_back(value);
-        }
+        _dictionary->resize(distinctValues.size());
 
+        std::copy(_dictionary->begin(), _dictionary->end(), std::back_inserter(distinctValues));
+
+        std::map<T, ValueID> valueIDs;
+        size_t index = 0;
         for(auto& value: value_column)
         {
-            // TODO!!
-            // find position of value in dictionary
-            // write position into _attribute_vector
+            auto& mapIt = valueIDs.find(value);
+            if (mapIt != valueIDs.end())
+            {
+                _attribute_vector->set(index, *mapIt);
+            }
+            else
+            {
+                auto& position = std::lower_bound(_dictionary->begin(), _dictionary->end(), value);
+                auto& id = std::distance(_dictionary->begin(), position);
+                valueIDs[value] = id;
+                _attribute_vector->set(index, id);
+            }
+            ++i;
         }
   }
 
