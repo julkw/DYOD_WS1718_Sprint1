@@ -30,7 +30,9 @@ size_t ValueColumn<T>::size() const {
 }
 
 template <typename T>
-const std::vector<T>& ValueColumn<T>::values() const { return _data; }
+const std::vector<T>& ValueColumn<T>::values() const {
+  return _data;
+}
 
 EXPLICITLY_INSTANTIATE_COLUMN_TYPES(ValueColumn);
 
