@@ -10,8 +10,8 @@
 namespace opossum {
 
 StorageManager& StorageManager::get() {
-  static StorageManager s;
-  return s;
+  static StorageManager instance;
+  return instance;
 }
 
 void StorageManager::add_table(const std::string& name, std::shared_ptr<Table> table) {
@@ -26,17 +26,14 @@ void StorageManager::drop_table(const std::string& name) {
   }
 }
 
-std::shared_ptr<Table> StorageManager::get_table(const std::string& name) const {
-  DebugAssert(has_table(name), "Table with name " + name + " does not exist.");
-  return _tables.at(name);
-}
+std::shared_ptr<Table> StorageManager::get_table(const std::string& name) const { return _tables.at(name); }
 
 bool StorageManager::has_table(const std::string& name) const { return _tables.count(name) != 0; }
 
 std::vector<std::string> StorageManager::table_names() const {
   std::vector<std::string> names;
 
-  for (auto& pair : _tables) {
+  for (const auto& pair : _tables) {
     names.push_back(pair.first);
   }
 

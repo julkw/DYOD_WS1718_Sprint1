@@ -83,11 +83,11 @@ class Table : private Noncopyable {
   void compress_chunk(ChunkID chunk_id);
 
  protected:
-  std::vector<std::string> _columnNames;
-  std::vector<std::string> _columnTypes;
+  std::vector<std::string> _column_names;
+  std::vector<std::string> _column_types;
 
   std::vector<Chunk> _chunks;
 
-  uint32_t _chunkSize;
+  const uint32_t _chunk_size;
 };
 }  // namespace opossum
