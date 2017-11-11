@@ -40,7 +40,7 @@ class DictionaryColumn : public BaseColumn {
 
         // initialize vectors
         _dictionary = std::make_shared<std::vector<T>>();
-        _attribute_vector = std::make_shared<FittedAttributeVector<uint32_t>>();
+        _attribute_vector = std::make_shared<FittedAttributeVector<uint32_t>>(value_column->size());
 
         const auto& values = value_column->values();
         std::set<T> distinctValues(values.begin(), values.end());
@@ -53,17 +53,17 @@ class DictionaryColumn : public BaseColumn {
         size_t index = 0;
         for(auto& value: values)
         {
-            auto& mapIt = valueIDs.find(value);
+            auto mapIt = valueIDs.find(value);
             if (mapIt != valueIDs.end())
             {
-                _attribute_vector->set(index, *mapIt);
+                _attribute_vector->set(index, mapIt->second);
             }
             else
             {
-                auto& position = std::lower_bound(_dictionary->begin(), _dictionary->end(), value);
-                auto& id = std::distance(_dictionary->begin(), position);
-                valueIDs[value] = id;
-                _attribute_vector->set(index, id);
+                auto dictIt = std::lower_bound(_dictionary->begin(), _dictionary->end(), value);
+                auto id = std::distance(_dictionary->begin(), dictIt);
+                valueIDs[value] = ValueID(id);
+                _attribute_vector->set(index, ValueID(id));
             }
             ++index;
         }
