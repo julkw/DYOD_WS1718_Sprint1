@@ -45,9 +45,9 @@ class DictionaryColumn : public BaseColumn {
         const auto& values = value_column->values();
         std::set<T> distinctValues(values.begin(), values.end());
 
-        _dictionary->resize(distinctValues.size());
+        _dictionary->reserve(distinctValues.size());
 
-        std::copy(_dictionary->begin(), _dictionary->end(), std::back_inserter(distinctValues));
+        std::copy(distinctValues.begin(), distinctValues.end(), std::back_inserter(*_dictionary));
 
         std::map<T, ValueID> valueIDs;
         size_t index = 0;

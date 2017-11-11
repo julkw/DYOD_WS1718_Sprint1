@@ -16,7 +16,7 @@ class FittedAttributeVector : public BaseAttributeVector {
 
   ValueID get(const size_t i) const {
     DebugAssert(i < _data.size(), "Out of bounds get() on FittedAttributeVector.");
-    return _data[i];
+    return ValueID(_data[i]);
   }
 
   virtual void set(const size_t i, const ValueID value_id) {
