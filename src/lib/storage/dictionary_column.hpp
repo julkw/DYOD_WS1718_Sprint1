@@ -10,12 +10,13 @@
 #include "all_type_variant.hpp"
 #include "types.hpp"
 #include "value_column.hpp"
-#include "base_attribute_vector.hpp"
+#include "fitted_attribute_vector.hpp"
 
 namespace opossum {
 
 class BaseAttributeVector;
 class BaseColumn;
+template <typename T>
 class ValueColumn;
 
 // Even though ValueIDs do not have to use the full width of ValueID (uint32_t), this will also work for smaller ValueID
@@ -39,7 +40,7 @@ class DictionaryColumn : public BaseColumn {
 
         // initialize vectors
         _dictionary = std::make_shared<std::vector<T>>();
-        _attribute_vector = std::make_shared<BaseAttributeVector>();
+        _attribute_vector = std::make_shared<FittedAttributeVector<uint32_t>>();
 
         const auto& values = value_column->values();
         std::set<T> distinctValues(values.begin(), values.end());
@@ -50,7 +51,7 @@ class DictionaryColumn : public BaseColumn {
 
         std::map<T, ValueID> valueIDs;
         size_t index = 0;
-        for(auto& value: value_column)
+        for(auto& value: values)
         {
             auto& mapIt = valueIDs.find(value);
             if (mapIt != valueIDs.end())
@@ -64,7 +65,7 @@ class DictionaryColumn : public BaseColumn {
                 valueIDs[value] = id;
                 _attribute_vector->set(index, id);
             }
-            ++i;
+            ++index;
         }
   }
 

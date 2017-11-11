@@ -7,10 +7,10 @@
 
 namespace opossum {
 
-class FittedAttributeVector<T> : private BaseAttributeVector {
+template <typename T>
+class FittedAttributeVector : private BaseAttributeVector {
  public:
-  template <typename T>
-  FittedAttributeVector<T>(const size_t size) {
+  FittedAttributeVector(const size_t size) {
     _data.resize(size);
   }
 
