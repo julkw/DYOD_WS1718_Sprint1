@@ -10,7 +10,7 @@ namespace opossum {
 template <typename T>
 class FittedAttributeVector : public BaseAttributeVector {
  public:
-  explicit FittedAttributeVector(const size_t size) { _data.resize(size); }
+  explicit FittedAttributeVector(const size_t size) : BaseAttributeVector() { _data.resize(size); }
 
   ValueID get(const size_t i) const {
     DebugAssert(i < _data.size(), "Out of bounds get() on FittedAttributeVector.");
