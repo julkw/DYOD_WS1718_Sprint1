@@ -33,9 +33,9 @@ class DictionaryColumn : public BaseColumn {
    * Creates a Dictionary column from a given value column.
    */
   explicit DictionaryColumn(const std::shared_ptr<BaseColumn>& base_column) {
-    auto value_column = dynamic_cast<ValueColumn<T>*>(base_column.get());
+    const auto value_column = dynamic_cast<ValueColumn<T>*>(base_column.get());
     if (!value_column) {
-      throw std::logic_error("Not the right type of ValueColumn");
+      throw std::logic_error("Dictionary column could not be initialized due to a type mismatch.");
     }
 
     const auto& values = value_column->values();
@@ -54,27 +54,24 @@ class DictionaryColumn : public BaseColumn {
     } else if (_dictionary->size() < std::numeric_limits<uint32_t>::max()) {
       _attribute_vector = std::make_shared<FittedAttributeVector<uint32_t>>(value_column->size());
     } else {
-      throw std::logic_error("Value IDs do not fit in 4 bytes.");
+      throw std::logic_error("Value IDs does not fit in 4 bytes.");
     }
 
     std::map<T, ValueID> valueIDs;
     size_t index = 0;
     for (auto& value : values) {
-      auto mapIt = valueIDs.find(value);
+      const auto mapIt = valueIDs.find(value);
       if (mapIt != valueIDs.end()) {
         _attribute_vector->set(index, mapIt->second);
       } else {
-        auto dictIt = std::lower_bound(_dictionary->begin(), _dictionary->end(), value);
-        auto id = std::distance(_dictionary->begin(), dictIt);
-        valueIDs[value] = ValueID(id);
-        _attribute_vector->set(index, ValueID(id));
+        const auto dictIt = std::lower_bound(_dictionary->begin(), _dictionary->end(), value);
+        const auto id = ValueID(std::distance(_dictionary->begin(), dictIt));
+        valueIDs[value] = id;
+        _attribute_vector->set(index, id);
       }
       ++index;
     }
   }
-
-  // SEMINAR INFORMATION: Since most of these methods depend on the template parameter, you will have to implement
-  // the DictionaryColumn in this file. Replace the method signatures with actual implementations.
 
   // return the value at a certain position. If you want to write efficient operators, back off!
   const AllTypeVariant operator[](const size_t i) const override { return _dictionary->at(_attribute_vector->get(i)); }
@@ -83,7 +80,7 @@ class DictionaryColumn : public BaseColumn {
   const T get(const size_t i) const { return _dictionary->at(_attribute_vector->get(i)); }
 
   // dictionary columns are immutable
-  void append(const AllTypeVariant&) override { throw std::logic_error("dictionary columns are immutable"); }
+  void append(const AllTypeVariant&) override { throw std::logic_error("Dictionary columns are immutable."); }
 
   // returns an underlying dictionary
   std::shared_ptr<const std::vector<T>> dictionary() const { return _dictionary; }
@@ -97,7 +94,7 @@ class DictionaryColumn : public BaseColumn {
   // returns the first value ID that refers to a value >= the search value
   // returns INVALID_VALUE_ID if all values are smaller than the search value
   ValueID lower_bound(T value) const {
-    auto it = std::lower_bound(_dictionary->begin(), _dictionary->end(), value);
+    const auto it = std::lower_bound(_dictionary->begin(), _dictionary->end(), value);
     if (it == _dictionary->end()) {
       return INVALID_VALUE_ID;
     } else {
@@ -107,22 +104,19 @@ class DictionaryColumn : public BaseColumn {
 
   // same as lower_bound(T), but accepts an AllTypeVariant
   ValueID lower_bound(const AllTypeVariant& value) const {
-    T val = dynamic_cast<T>(value);
+    const T val = dynamic_cast<T>(value);
+
     if (!val) {
       return INVALID_VALUE_ID;
     }
-    auto it = std::lower_bound(_dictionary->begin(), _dictionary->end(), val);
-    if (it == _dictionary->end()) {
-      return INVALID_VALUE_ID;
-    } else {
-      return ValueID(std::distance(_dictionary->begin(), it));
-    }
+
+    return lower_bound(val);
   }
 
   // returns the first value ID that refers to a value > the search value
   // returns INVALID_VALUE_ID if all values are smaller than or equal to the search value
   ValueID upper_bound(T value) const {
-    auto it = std::upper_bound(_dictionary->begin(), _dictionary->end(), value);
+   const auto it = std::upper_bound(_dictionary->begin(), _dictionary->end(), value);
     if (it == _dictionary->end()) {
       return INVALID_VALUE_ID;
     } else {
@@ -132,16 +126,13 @@ class DictionaryColumn : public BaseColumn {
 
   // same as upper_bound(T), but accepts an AllTypeVariant
   ValueID upper_bound(const AllTypeVariant& value) const {
-    T val = dynamic_cast<T>(value);
+    const T val = dynamic_cast<T>(value);
+
     if (!val) {
       return INVALID_VALUE_ID;
     }
-    auto it = std::upper_bound(_dictionary->begin(), _dictionary->end(), val);
-    if (it == _dictionary->end()) {
-      return INVALID_VALUE_ID;
-    } else {
-      return ValueID(std::distance(_dictionary->begin(), it));
-    }
+
+    return lower_bound(val);
   }
 
   // return the number of unique_values (dictionary entries)
