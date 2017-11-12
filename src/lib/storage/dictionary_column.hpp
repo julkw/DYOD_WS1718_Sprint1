@@ -116,7 +116,7 @@ class DictionaryColumn : public BaseColumn {
   // returns the first value ID that refers to a value > the search value
   // returns INVALID_VALUE_ID if all values are smaller than or equal to the search value
   ValueID upper_bound(T value) const {
-   const auto it = std::upper_bound(_dictionary->begin(), _dictionary->end(), value);
+    const auto it = std::upper_bound(_dictionary->begin(), _dictionary->end(), value);
     if (it == _dictionary->end()) {
       return INVALID_VALUE_ID;
     } else {

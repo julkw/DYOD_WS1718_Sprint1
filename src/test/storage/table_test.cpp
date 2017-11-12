@@ -8,6 +8,7 @@
 #include "gtest/gtest.h"
 
 #include "../lib/resolve_type.hpp"
+#include "../lib/storage/dictionary_column.hpp"
 #include "../lib/storage/table.hpp"
 
 namespace opossum {
@@ -70,5 +71,15 @@ TEST_F(StorageTableTest, GetColumnIdByName) {
 }
 
 TEST_F(StorageTableTest, GetChunkSize) { EXPECT_EQ(t.chunk_size(), 2u); }
+
+TEST_F(StorageTableTest, CompressChunk) {
+  t.append({4, "Hello,"});
+  t.compress_chunk(ChunkID(0));
+
+  const auto& chunk = t.get_chunk(ChunkID(0));
+  const auto& column = chunk.get_column(ColumnID(0));
+  auto dictColPtr = dynamic_cast<DictionaryColumn<int>*>(column.get());
+  EXPECT_TRUE(dictColPtr != nullptr);
+}
 
 }  // namespace opossum

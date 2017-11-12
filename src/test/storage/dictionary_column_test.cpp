@@ -89,9 +89,8 @@ TEST_F(StorageDictionaryColumnTest, ValueIDWidth) {
 }
 
 TEST_F(StorageDictionaryColumnTest, ThrowOnWrongInitialization) {
-  EXPECT_THROW(
-    (opossum::make_shared_by_column_type<opossum::BaseColumn, opossum::DictionaryColumn>("float", vc_int)),
-    std::exception);
+  EXPECT_THROW((opossum::make_shared_by_column_type<opossum::BaseColumn, opossum::DictionaryColumn>("float", vc_int)),
+               std::exception);
 }
 
 TEST_F(StorageDictionaryColumnTest, ThrowOnAppendToDictCol) {
