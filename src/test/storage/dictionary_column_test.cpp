@@ -1,6 +1,7 @@
 #include <memory>
 #include <string>
 
+#include "../base_test.hpp"
 #include "gtest/gtest.h"
 
 #include "../../lib/resolve_type.hpp"
@@ -37,6 +38,13 @@ TEST_F(StorageDictionaryColumnTest, CompressColumnString) {
   EXPECT_EQ((*dict)[1], "Bill");
   EXPECT_EQ((*dict)[2], "Hasso");
   EXPECT_EQ((*dict)[3], "Steve");
+
+  EXPECT_EQ(opossum::type_cast<std::string>((*dict_col)[0]), "Bill");
+  EXPECT_EQ(opossum::type_cast<std::string>((*dict_col)[1]), "Steve");
+  EXPECT_EQ(opossum::type_cast<std::string>((*dict_col)[2]), "Alexander");
+  EXPECT_EQ(opossum::type_cast<std::string>((*dict_col)[3]), "Steve");
+  EXPECT_EQ(opossum::type_cast<std::string>((*dict_col)[4]), "Hasso");
+  EXPECT_EQ(opossum::type_cast<std::string>((*dict_col)[5]), "Bill");
 }
 
 TEST_F(StorageDictionaryColumnTest, LowerUpperBound) {
@@ -78,6 +86,19 @@ TEST_F(StorageDictionaryColumnTest, ValueIDWidth) {
 
     EXPECT_EQ(dict_col->attribute_vector()->width(), 4);
   }
+}
+
+TEST_F(StorageDictionaryColumnTest, ThrowOnWrongInitialization) {
+  EXPECT_THROW(
+    (opossum::make_shared_by_column_type<opossum::BaseColumn, opossum::DictionaryColumn>("float", vc_int)),
+    std::exception);
+}
+
+TEST_F(StorageDictionaryColumnTest, ThrowOnAppendToDictCol) {
+  auto col = opossum::make_shared_by_column_type<opossum::BaseColumn, opossum::DictionaryColumn>("string", vc_str);
+  auto dict_col = std::dynamic_pointer_cast<opossum::DictionaryColumn<std::string>>(col);
+
+  EXPECT_THROW((dict_col->append("Philipp")), std::exception);
 }
 
 // TODO(student): You should add some more tests here (full coverage would be appreciated) and possibly in other files.
