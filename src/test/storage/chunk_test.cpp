@@ -34,6 +34,7 @@ TEST_F(StorageChunkTest, AddColumnToChunk) {
   c.add_column(vc_int);
   c.add_column(vc_str);
   EXPECT_EQ(c.size(), 3u);
+  EXPECT_EQ(c.col_count(), 2u);
 }
 
 TEST_F(StorageChunkTest, AddValuesToChunk) {
