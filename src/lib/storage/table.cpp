@@ -107,4 +107,8 @@ void Table::compress_chunk(ChunkID chunk_id) {
   std::swap(old_chunk, chunk);
 }
 
+void emplace_chunk(Chunk chunk) {
+  // Implementation goes here
+}
+
 }  // namespace opossum
