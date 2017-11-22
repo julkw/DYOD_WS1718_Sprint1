@@ -39,12 +39,11 @@ class DictionaryColumn : public BaseColumn {
     }
 
     const auto& values = value_column->values();
-    std::set<T> distinctValues(values.begin(), values.end());
+    std::set<T> distinct_values(values.begin(), values.end());
 
     // Build the dictionary from the set of distinct values
-    _dictionary = std::make_shared<std::vector<T>>();
-    _dictionary->reserve(distinctValues.size());
-    std::copy(distinctValues.begin(), distinctValues.end(), std::back_inserter(*_dictionary));
+    _dictionary = std::make_shared<std::vector<T>>(distinct_values.begin(), distinct_values.end());
+    _dictionary->reserve(distinct_values.size());
 
     // Decide which size the IDs need to have based on the dictionary size
     if (_dictionary->size() < std::numeric_limits<uint8_t>::max()) {
@@ -57,16 +56,16 @@ class DictionaryColumn : public BaseColumn {
       throw std::logic_error("Value IDs does not fit in 4 bytes.");
     }
 
-    std::map<T, ValueID> valueIDs;
+    std::map<T, ValueID> value_IDs;
     size_t index = 0;
-    for (auto& value : values) {
-      const auto mapIt = valueIDs.find(value);
-      if (mapIt != valueIDs.end()) {
+    for (const auto& value : values) {
+      const auto mapIt = value_IDs.find(value);
+      if (mapIt != value_IDs.end()) {
         _attribute_vector->set(index, mapIt->second);
       } else {
         const auto dictIt = std::lower_bound(_dictionary->begin(), _dictionary->end(), value);
         const auto id = ValueID(std::distance(_dictionary->begin(), dictIt));
-        valueIDs[value] = id;
+        value_IDs[value] = id;
         _attribute_vector->set(index, id);
       }
       ++index;
@@ -104,7 +103,7 @@ class DictionaryColumn : public BaseColumn {
 
   // same as lower_bound(T), but accepts an AllTypeVariant
   ValueID lower_bound(const AllTypeVariant& value) const {
-    const T val = dynamic_cast<T>(value);
+    const T val = opossum::type_cast<T>(value);
 
     if (!val) {
       return INVALID_VALUE_ID;
@@ -126,7 +125,7 @@ class DictionaryColumn : public BaseColumn {
 
   // same as upper_bound(T), but accepts an AllTypeVariant
   ValueID upper_bound(const AllTypeVariant& value) const {
-    const T val = dynamic_cast<T>(value);
+    const T val = opossum::type_cast<T>(value);
 
     if (!val) {
       return INVALID_VALUE_ID;

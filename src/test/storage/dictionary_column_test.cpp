@@ -63,7 +63,8 @@ TEST_F(StorageDictionaryColumnTest, LowerUpperBound) {
 }
 
 TEST_F(StorageDictionaryColumnTest, ValueIDWidth) {
-  for (int i = 0; i <= 10; ++i) vc_int->append(i);
+  for (int32_t value = 0; value <= 10; ++value) vc_int->append(value);
+
   {
     auto col = opossum::make_shared_by_column_type<opossum::BaseColumn, opossum::DictionaryColumn>("int", vc_int);
     auto dict_col = std::dynamic_pointer_cast<opossum::DictionaryColumn<int>>(col);
@@ -72,7 +73,7 @@ TEST_F(StorageDictionaryColumnTest, ValueIDWidth) {
   }
 
   {
-    for (int i = 0; i <= 300; ++i) vc_int->append(i);
+    for (int32_t value = 0; value <= 300; ++value) vc_int->append(value);
     auto col = opossum::make_shared_by_column_type<opossum::BaseColumn, opossum::DictionaryColumn>("int", vc_int);
     auto dict_col = std::dynamic_pointer_cast<opossum::DictionaryColumn<int>>(col);
 
@@ -80,7 +81,7 @@ TEST_F(StorageDictionaryColumnTest, ValueIDWidth) {
   }
 
   {
-    for (int i = 0; i <= 66000; ++i) vc_int->append(i);
+    for (int32_t value = 0; value <= 66000; ++value) vc_int->append(value);
     auto col = opossum::make_shared_by_column_type<opossum::BaseColumn, opossum::DictionaryColumn>("int", vc_int);
     auto dict_col = std::dynamic_pointer_cast<opossum::DictionaryColumn<int>>(col);
 

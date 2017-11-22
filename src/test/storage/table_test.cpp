@@ -78,8 +78,8 @@ TEST_F(StorageTableTest, CompressChunk) {
 
   const auto& chunk = t.get_chunk(ChunkID(0));
   const auto& column = chunk.get_column(ColumnID(0));
-  auto dictColPtr = dynamic_cast<DictionaryColumn<int>*>(column.get());
-  EXPECT_TRUE(dictColPtr != nullptr);
+  auto dict_col_ptr = dynamic_cast<DictionaryColumn<int>*>(column.get());
+  EXPECT_TRUE(dict_col_ptr != nullptr);
 }
 
 }  // namespace opossum
