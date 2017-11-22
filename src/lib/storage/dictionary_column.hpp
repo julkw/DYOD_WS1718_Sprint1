@@ -39,11 +39,11 @@ class DictionaryColumn : public BaseColumn {
     }
 
     const auto& values = value_column->values();
-    std::set<T> distinct_values(values.begin(), values.end());
 
-    // Build the dictionary from the set of distinct values
-    _dictionary = std::make_shared<std::vector<T>>(distinct_values.begin(), distinct_values.end());
-    _dictionary->reserve(distinct_values.size());
+    // Build the dictionary from distinct values
+    _dictionary = std::make_shared<std::vector<T>>(values.begin(), values.end());
+    std::sort(_dictionary->begin(), _dictionary->end());
+    _dictionary->erase(std::unique(_dictionary->begin(), _dictionary->end()), _dictionary->end());
 
     // Decide which size the IDs need to have based on the dictionary size
     if (_dictionary->size() < std::numeric_limits<uint8_t>::max()) {
