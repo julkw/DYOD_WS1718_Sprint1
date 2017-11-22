@@ -11,6 +11,7 @@
 
 #include "all_type_variant.hpp"
 #include "fitted_attribute_vector.hpp"
+#include "type_cast.hpp"
 #include "types.hpp"
 #include "value_column.hpp"
 
@@ -103,7 +104,7 @@ class DictionaryColumn : public BaseColumn {
 
   // same as lower_bound(T), but accepts an AllTypeVariant
   ValueID lower_bound(const AllTypeVariant& value) const {
-    const T val = opossum::type_cast<T>(value);
+    const T val = type_cast<T>(value);
 
     if (!val) {
       return INVALID_VALUE_ID;
@@ -125,7 +126,7 @@ class DictionaryColumn : public BaseColumn {
 
   // same as upper_bound(T), but accepts an AllTypeVariant
   ValueID upper_bound(const AllTypeVariant& value) const {
-    const T val = opossum::type_cast<T>(value);
+    const T val = type_cast<T>(value);
 
     if (!val) {
       return INVALID_VALUE_ID;
