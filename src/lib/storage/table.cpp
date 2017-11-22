@@ -98,7 +98,7 @@ void Table::compress_chunk(ChunkID chunk_id) {
   auto& old_chunk = _chunks[chunk_id];
 
   auto id = 0;
-  for (auto& column_type : _column_types) {
+  for (const auto& column_type : _column_types) {
     chunk.add_column(
         make_shared_by_column_type<BaseColumn, DictionaryColumn>(column_type, old_chunk.get_column(ColumnID(id))));
     ++id;
