@@ -18,6 +18,7 @@ set(
     storage/chunk.hpp
     storage/dictionary_column.hpp
     storage/reference_column.hpp
+    storage/reference_column.cpp
     storage/storage_manager.cpp
     storage/storage_manager.hpp
     storage/table.cpp
