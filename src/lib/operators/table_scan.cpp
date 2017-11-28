@@ -20,7 +20,7 @@ std::shared_ptr<const Table> TableScan::_on_execute() {
   const auto& input_table = _input_table_left();
   const auto& column_type = input_table->column_type(_column_id);
 
-  auto impl = make_unique_by_column_type<BaseTableScanImpl, TableScanImpl>(column_type, *input_table, _column_id, _scan_type, _search_value);
+  auto impl = make_unique_by_column_type<BaseTableScanImpl, TableScanImpl>(column_type, input_table, _column_id, _scan_type, _search_value);
   return impl->on_execute();
 }
 
@@ -37,7 +37,7 @@ const AllTypeVariant& TableScan::search_value() const {
 }
 
 template <typename T>
-TableScan::TableScanImpl<T>::TableScanImpl(const Table& table, ColumnID column_id, const ScanType scan_type,
+TableScan::TableScanImpl<T>::TableScanImpl(std::shared_ptr<const Table> table, ColumnID column_id, const ScanType scan_type,
                                            const AllTypeVariant search_value)
 : _table(table)
 , _column_id(column_id)

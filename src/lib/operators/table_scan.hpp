@@ -38,19 +38,28 @@ class TableScan : public AbstractOperator {
   template <typename T>
   class TableScanImpl : public BaseTableScanImpl {
   public:
-      TableScanImpl(const Table& table, ColumnID column_id, const ScanType scan_type,
+      TableScanImpl(std::shared_ptr<const Table> table, ColumnID column_id, const ScanType scan_type,
                     const AllTypeVariant search_value);
 
       std::shared_ptr<const Table> on_execute() override {
-          auto result_table = std::make_shared<opossum::Table>();
-          result_table->add_column(_table.column_name(_column_id), _table.column_type(_column_id));
+          const auto position_list = std::make_shared<PosList>();
+          const auto compare_value = opossum::type_cast<T>(_search_value);
 
-          for (auto chunk_id = ChunkID(0); chunk_id < _table.chunk_count(); ++chunk_id) {
-            const auto& chunk = _table.get_chunk(chunk_id);
+          for (auto chunk_id = ChunkID(0); chunk_id < _table->chunk_count(); ++chunk_id) {
+            const auto& chunk = _table->get_chunk(chunk_id);
             const auto& column = chunk.get_column(_column_id);
 
             if (auto vc = std::dynamic_pointer_cast<ValueColumn<T>>(column)) {
-                // TODO
+                const auto& values = vc->values();
+
+                for (auto i = 0u; i < values.size(); ++i) {
+                    if (_evaluate_scan(values[i], compare_value)) {
+                        RowID row_id;
+                        row_id.chunk_id = chunk_id;
+                        row_id.chunk_offset = i;
+                        position_list->emplace_back(std::move(row_id));
+                    }
+                }
             }
             else if (auto dc = std::dynamic_pointer_cast<DictionaryColumn<T>>(column)) {
                 // TODO
@@ -63,11 +72,25 @@ class TableScan : public AbstractOperator {
             }
           }
 
+          const auto column = std::make_shared<ReferenceColumn>(_table, _column_id, position_list);
+
+          Chunk chunk;
+          chunk.add_column(column);
+
+          const auto result_table = std::make_shared<opossum::Table>();
+          result_table->add_column(_table->column_name(_column_id), _table->column_type(_column_id));
+          result_table->emplace_chunk(std::move(chunk));
+
           return result_table;
       }
 
   protected:
-      const Table& _table;
+      bool _evaluate_scan(T value, T compare_value) {
+          // TODO
+          return true;
+      }
+
+      std::shared_ptr<const Table> _table;
       const ColumnID _column_id;
       const ScanType _scan_type;
       const AllTypeVariant _search_value;
