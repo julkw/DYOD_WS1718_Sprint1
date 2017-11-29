@@ -46,11 +46,11 @@ class DictionaryColumn : public BaseColumn {
     _dictionary->erase(std::unique(_dictionary->begin(), _dictionary->end()), _dictionary->end());
 
     // Decide which size the IDs need to have based on the dictionary size
-    if (_dictionary->size() < std::numeric_limits<uint8_t>::max()) {
+    if (_dictionary->size() < std::numeric_limits<uint8_t>::max() - 1) {
       _attribute_vector = std::make_shared<FittedAttributeVector<uint8_t>>(value_column->size());
-    } else if (_dictionary->size() < std::numeric_limits<uint16_t>::max()) {
+    } else if (_dictionary->size() < std::numeric_limits<uint16_t>::max() - 1) {
       _attribute_vector = std::make_shared<FittedAttributeVector<uint16_t>>(value_column->size());
-    } else if (_dictionary->size() < std::numeric_limits<uint32_t>::max()) {
+    } else if (_dictionary->size() < std::numeric_limits<uint32_t>::max() - 1) {
       _attribute_vector = std::make_shared<FittedAttributeVector<uint32_t>>(value_column->size());
     } else {
       throw std::logic_error("Value IDs does not fit in 4 bytes.");
