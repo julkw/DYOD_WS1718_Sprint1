@@ -14,6 +14,7 @@
 #include "storage/value_column.hpp"
 #include "storage/reference_column.hpp"
 #include "storage/dictionary_column.hpp"
+#include "type_cast.hpp"
 
 namespace opossum {
 
@@ -62,10 +63,69 @@ class TableScan : public AbstractOperator {
                 }
             }
             else if (auto dc = std::dynamic_pointer_cast<DictionaryColumn<T>>(column)) {
-                // TODO
+                const auto& id_values = dc->attribute_vector();
+                ValueID dict_id = INVALID_VALUE_ID;
+                bool check_attribute_vector = true;
+                switch (_scan_type){
+                    case ScanType::OpEquals:
+                        if(dc->lower_bound(compare_value) == dc->upper_bound(compare_value)) {
+                            check_attribute_vector = false;
+                        } else {
+                            dict_id = dc->lower_bound(compare_value);
+                        }
+                        break;
+                    case ScanType::OpNotEquals:
+                        if(dc->lower_bound(compare_value) != dc->upper_bound(compare_value)) {
+                            dict_id = dc->lower_bound(compare_value);
+                        }
+                        // TODO
+                        // in the else case every position will evaluate to true
+                        // maybe cut the checks?
+                        break;
+                    case ScanType::OpGreaterThan:
+                    case ScanType::OpLessThanEquals:
+                        if(dc->lower_bound(compare_value) == dc->upper_bound(compare_value)) {
+                            dict_id = dc->lower_bound(compare_value) - 1;
+                            // TODO
+                            // Does this throw errors when lower_bound is 0?
+                        } else {
+                            dict_id = dc->lower_bound(compare_value);
+                        }
+                        break;
+                    case ScanType::OpGreaterThanEquals:
+                    case ScanType::OpLessThan:
+                        dict_id = dc->lower_bound(compare_value);
+                        break;
+                }
+
+                if(check_attribute_vector) {
+                    // TODO
+                    // this is basically a copy. Maybe make a function out of it?
+                    for (auto i = 0u; i < id_values->size(); ++i) {
+                        if (_evaluate_scan(id_values->get(i), dict_id)) {
+                            RowID row_id;
+                            row_id.chunk_id = chunk_id;
+                            row_id.chunk_offset = i;
+                            position_list->emplace_back(std::move(row_id));
+                        }
+                    }
+                }
             }
             else if (auto rc = std::dynamic_pointer_cast<ReferenceColumn>(column)) {
-                // TODO
+                const auto& column_pos_list = rc->pos_list();
+                const auto& referenced_table = rc->referenced_table();
+                for (const auto& row_id : *column_pos_list) {
+                    // TODO
+                    // this is incredibly ugly, but we were told not to use the [] operator.
+                    // any ideas?
+                    const auto& column = referenced_table->get_chunk(row_id.chunk_id).get_column(rc->referenced_column_id());
+                    const T value = type_cast<T>((*column)[row_id.chunk_offset]);
+                    if (_evaluate_scan(value, compare_value)) {
+                        // TODO
+                        // does it pose a problem that row_id is a reference?
+                        position_list->push_back(row_id);
+                    }
+                }
             }
             else {
                 throw std::logic_error("Unkown column type.");
@@ -86,8 +146,43 @@ class TableScan : public AbstractOperator {
 
   protected:
       bool _evaluate_scan(T value, T compare_value) {
-          // TODO
-          return true;
+          switch (_scan_type){
+              case ScanType::OpEquals:
+                  return value == compare_value;
+              case ScanType::OpNotEquals:
+                  return value != compare_value;
+              case ScanType::OpGreaterThan:
+                  return value > compare_value;
+              case ScanType::OpLessThanEquals:
+                  return value <= compare_value;
+              case ScanType::OpGreaterThanEquals:
+                  return value >= compare_value;
+              case ScanType::OpLessThan:
+                  return value < compare_value;
+              default:
+                  return false;
+          }
+      }
+
+      // TODO
+      // this is incredibly ugly. DO SOMETHING!
+      bool _evaluate_scan(ValueID value, ValueID compare_value) {
+          switch (_scan_type){
+              case ScanType::OpEquals:
+                  return value == compare_value;
+              case ScanType::OpNotEquals:
+                  return value != compare_value;
+              case ScanType::OpGreaterThan:
+                  return value > compare_value;
+              case ScanType::OpLessThanEquals:
+                  return value <= compare_value;
+              case ScanType::OpGreaterThanEquals:
+                  return value >= compare_value;
+              case ScanType::OpLessThan:
+                  return value < compare_value;
+              default:
+                  return false;
+          }
       }
 
       std::shared_ptr<const Table> _table;

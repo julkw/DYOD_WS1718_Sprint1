@@ -15,7 +15,9 @@ class GetTable : public AbstractOperator {
   explicit GetTable(const std::string& name)
   : _table_name(name) {};
 
-  const std::string& table_name() const;
+  const std::string& table_name() const {
+      return _table_name;
+  }
 
  protected:
   std::shared_ptr<const Table> _on_execute() override {
