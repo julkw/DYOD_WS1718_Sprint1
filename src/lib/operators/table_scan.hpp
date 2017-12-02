@@ -3,8 +3,8 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "abstract_operator.hpp"
 #include "all_type_variant.hpp"
