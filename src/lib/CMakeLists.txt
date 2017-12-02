@@ -9,6 +9,7 @@ set(
     operators/print.cpp
     operators/print.hpp
     operators/table_scan.hpp
+    operators/table_scan.cpp
     operators/table_wrapper.cpp
     operators/table_wrapper.hpp
     storage/base_attribute_vector.hpp
@@ -18,6 +19,7 @@ set(
     storage/chunk.hpp
     storage/dictionary_column.hpp
     storage/reference_column.hpp
+    storage/reference_column.cpp
     storage/storage_manager.cpp
     storage/storage_manager.hpp
     storage/table.cpp
