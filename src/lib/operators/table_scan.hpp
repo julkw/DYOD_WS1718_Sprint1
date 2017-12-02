@@ -51,13 +51,13 @@ class TableScan : public AbstractOperator {
             const auto& column = chunk.get_column(_column_id);
 
             if (auto vc = std::dynamic_pointer_cast<ValueColumn<T>>(column)) {
-                _appendPositionList(position_list, vc, chunk_id);
+                _scanColumn(position_list, vc, chunk_id);
             }
             else if (auto dc = std::dynamic_pointer_cast<DictionaryColumn<T>>(column)) {
-                _appendPositionList(position_list, dc, chunk_id);
+                _scanColumn(position_list, dc, chunk_id);
             }
             else if (auto rc = std::dynamic_pointer_cast<ReferenceColumn>(column)) {
-                _appendPositionList(position_list, rc, referenced_table, chunk_id);
+                _scanColumn(position_list, rc, referenced_table, chunk_id);
             }
             else {
                 throw std::logic_error("Unkown column type.");
@@ -101,9 +101,21 @@ class TableScan : public AbstractOperator {
           }
       }
 
-      void _appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<ValueColumn<T>> vc, const ChunkID chunk_id);
-      void _appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<DictionaryColumn<T>> dc, const ChunkID chunk_id);
-      void _appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<ReferenceColumn> rc, std::shared_ptr<const Table>& referenced_table, const ChunkID chunk_id);
+      template <typename M, typename N>
+      void _appendPositionList(std::shared_ptr<PosList> position_list, M accessor, size_t size, N compare_value, ChunkID chunk_id, bool all_true) {
+          for (ChunkOffset chunk_offset = 0; chunk_offset < size; ++chunk_offset) {
+              if (all_true || _evaluate_scan(accessor(chunk_offset), compare_value)) {
+                  RowID row_id;
+                  row_id.chunk_id = chunk_id;
+                  row_id.chunk_offset = chunk_offset;
+                  position_list->emplace_back(std::move(row_id));
+              }
+          }
+      }
+
+      void _scanColumn(std::shared_ptr<PosList> position_list, std::shared_ptr<ValueColumn<T>> vc, const ChunkID chunk_id);
+      void _scanColumn(std::shared_ptr<PosList> position_list, std::shared_ptr<DictionaryColumn<T>> dc, const ChunkID chunk_id);
+      void _scanColumn(std::shared_ptr<PosList> position_list, std::shared_ptr<ReferenceColumn> rc, std::shared_ptr<const Table>& referenced_table, const ChunkID chunk_id);
 
       T _evaluateReferenceColumn(std::shared_ptr<ReferenceColumn> rc, const RowID& row_id);
 

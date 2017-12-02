@@ -34,6 +34,7 @@ namespace opossum {
     const std::shared_ptr<const PosList> ReferenceColumn::pos_list() const {
         return _pos_list;
     }
+
     const std::shared_ptr<const Table> ReferenceColumn::referenced_table() const {
         return _referenced_table;
     }

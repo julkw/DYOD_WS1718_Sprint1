@@ -46,22 +46,18 @@ TableScan::TableScanImpl<T>::TableScanImpl(std::shared_ptr<const Table> table, C
 {}
 
 template <typename T>
-void TableScan::TableScanImpl<T>:: _appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<ValueColumn<T>> vc, const ChunkID chunk_id) {
+void TableScan::TableScanImpl<T>:: _scanColumn(std::shared_ptr<PosList> position_list, std::shared_ptr<ValueColumn<T>> vc, const ChunkID chunk_id) {
     const auto& values = vc->values();
     const auto compare_value = opossum::type_cast<T>(_search_value);
 
-    for (auto i = 0u; i < values.size(); ++i) {
-        if (_evaluate_scan(values[i], compare_value)) {
-            RowID row_id;
-            row_id.chunk_id = chunk_id;
-            row_id.chunk_offset = i;
-            position_list->emplace_back(std::move(row_id));
-        }
-    }
+    const auto accessor = [&](size_t chunk_offset) {
+        return values[chunk_offset];
+    };
+    _appendPositionList(position_list, accessor, values.size(), compare_value, chunk_id, false);
 }
 
 template <typename T>
-void TableScan::TableScanImpl<T>::_appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<DictionaryColumn<T>> dc, const ChunkID chunk_id) {
+void TableScan::TableScanImpl<T>::_scanColumn(std::shared_ptr<PosList> position_list, std::shared_ptr<DictionaryColumn<T>> dc, const ChunkID chunk_id) {
     const auto& id_values = dc->attribute_vector();
     ValueID dict_id = INVALID_VALUE_ID;
     bool all_false = false;
@@ -104,21 +100,16 @@ void TableScan::TableScanImpl<T>::_appendPositionList(std::shared_ptr<PosList> p
     }
 
     if(!all_false) {
-        // TODO
-        // this is basically a copy. Maybe make a function out of it?
-        for (auto i = 0u; i < id_values->size(); ++i) {
-            if (all_true || _evaluate_scan(id_values->get(i), dict_id)) {
-                RowID row_id;
-                row_id.chunk_id = chunk_id;
-                row_id.chunk_offset = i;
-                position_list->emplace_back(std::move(row_id));
-            }
-        }
+        const auto& accessor = [&](size_t chunk_offset) {
+            return id_values->get(chunk_offset);
+        };
+
+        _appendPositionList(position_list, accessor, dc->size(), dict_id, chunk_id, all_true);
     }
 }
 
 template <typename T>
-void TableScan::TableScanImpl<T>::_appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<ReferenceColumn> rc, std::shared_ptr<const Table>& referenced_table, const ChunkID chunk_id) {
+void TableScan::TableScanImpl<T>::_scanColumn(std::shared_ptr<PosList> position_list, std::shared_ptr<ReferenceColumn> rc, std::shared_ptr<const Table>& referenced_table, const ChunkID chunk_id) {
     const auto& column_pos_list = rc->pos_list();
     referenced_table = rc->referenced_table();
     const auto compare_value = opossum::type_cast<T>(_search_value);
