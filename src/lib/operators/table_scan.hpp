@@ -67,6 +67,7 @@ class TableScan : public AbstractOperator {
                 const auto& id_values = dc->attribute_vector();
                 ValueID dict_id = INVALID_VALUE_ID;
                 bool check_attribute_vector = true;
+
                 switch (_scan_type){
                     case ScanType::OpEquals:
                         if(dc->lower_bound(compare_value) == dc->upper_bound(compare_value)) {
@@ -148,28 +149,8 @@ class TableScan : public AbstractOperator {
       }
 
   protected:
-      bool _evaluate_scan(T value, T compare_value) {
-          switch (_scan_type){
-              case ScanType::OpEquals:
-                  return value == compare_value;
-              case ScanType::OpNotEquals:
-                  return value != compare_value;
-              case ScanType::OpGreaterThan:
-                  return value > compare_value;
-              case ScanType::OpLessThanEquals:
-                  return value <= compare_value;
-              case ScanType::OpGreaterThanEquals:
-                  return value >= compare_value;
-              case ScanType::OpLessThan:
-                  return value < compare_value;
-              default:
-                  return false;
-          }
-      }
-
-      // TODO
-      // this is incredibly ugly. DO SOMETHING!
-      bool _evaluate_scan(ValueID value, ValueID compare_value) {
+      template <typename U>
+      bool _evaluate_scan(U value, U compare_value) {
           switch (_scan_type){
               case ScanType::OpEquals:
                   return value == compare_value;
