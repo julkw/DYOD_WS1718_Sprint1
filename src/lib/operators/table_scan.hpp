@@ -132,13 +132,17 @@ class TableScan : public AbstractOperator {
             }
           }
 
-          const auto column = std::make_shared<ReferenceColumn>(_table, _column_id, position_list);
+          const auto result_table = std::make_shared<opossum::Table>();
 
           Chunk chunk;
-          chunk.add_column(column);
 
-          const auto result_table = std::make_shared<opossum::Table>();
-          result_table->add_column(_table->column_name(_column_id), _table->column_type(_column_id));
+          for (auto column_id = ColumnID(0); column_id < _table->col_count(); ++column_id) {
+            result_table->add_column(_table->column_name(column_id), _table->column_type(column_id));
+
+            const auto column = std::make_shared<ReferenceColumn>(_table, column_id, position_list);
+            chunk.add_column(column);
+          }
+
           result_table->emplace_chunk(std::move(chunk));
 
           return result_table;
