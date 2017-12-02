@@ -44,7 +44,6 @@ class TableScan : public AbstractOperator {
 
       std::shared_ptr<const Table> on_execute() override {
           const auto position_list = std::make_shared<PosList>();
-          const auto compare_value = opossum::type_cast<T>(_search_value);
           auto referenced_table = _table;
 
           for (auto chunk_id = ChunkID(0); chunk_id < _table->chunk_count(); ++chunk_id) {
@@ -52,80 +51,13 @@ class TableScan : public AbstractOperator {
             const auto& column = chunk.get_column(_column_id);
 
             if (auto vc = std::dynamic_pointer_cast<ValueColumn<T>>(column)) {
-                const auto& values = vc->values();
-
-                for (auto i = 0u; i < values.size(); ++i) {
-                    if (_evaluate_scan(values[i], compare_value)) {
-                        RowID row_id;
-                        row_id.chunk_id = chunk_id;
-                        row_id.chunk_offset = i;
-                        position_list->emplace_back(std::move(row_id));
-                    }
-                }
+                appendPositionList(position_list, vc, chunk_id);
             }
             else if (auto dc = std::dynamic_pointer_cast<DictionaryColumn<T>>(column)) {
-                const auto& id_values = dc->attribute_vector();
-                ValueID dict_id = INVALID_VALUE_ID;
-                bool check_attribute_vector = true;
-
-                switch (_scan_type){
-                    case ScanType::OpEquals:
-                        if(dc->lower_bound(compare_value) == dc->upper_bound(compare_value)) {
-                            check_attribute_vector = false;
-                        } else {
-                            dict_id = dc->lower_bound(compare_value);
-                        }
-                        break;
-                    case ScanType::OpNotEquals:
-                        if(dc->lower_bound(compare_value) != dc->upper_bound(compare_value)) {
-                            dict_id = dc->lower_bound(compare_value);
-                        }
-                        // TODO
-                        // in the else case every position will evaluate to true
-                        // maybe cut the checks?
-                        break;
-                    case ScanType::OpGreaterThan:
-                        dict_id = dc->upper_bound(compare_value);
-                        _scan_type = ScanType::OpGreaterThanEquals;
-                        break;
-                    case ScanType::OpLessThanEquals:
-                        dict_id = dc->upper_bound(compare_value);
-                        _scan_type = ScanType::OpLessThan;
-                        break;
-                    case ScanType::OpGreaterThanEquals:
-                    case ScanType::OpLessThan:
-                        dict_id = dc->lower_bound(compare_value);
-                        break;
-                }
-
-                if(check_attribute_vector) {
-                    // TODO
-                    // this is basically a copy. Maybe make a function out of it?
-                    for (auto i = 0u; i < id_values->size(); ++i) {
-                        if (_evaluate_scan(id_values->get(i), dict_id)) {
-                            RowID row_id;
-                            row_id.chunk_id = chunk_id;
-                            row_id.chunk_offset = i;
-                            position_list->emplace_back(std::move(row_id));
-                        }
-                    }
-                }
+                appendPositionList(position_list, dc, chunk_id);
             }
             else if (auto rc = std::dynamic_pointer_cast<ReferenceColumn>(column)) {
-                const auto& column_pos_list = rc->pos_list();
-                referenced_table = rc->referenced_table();
-                for (const auto& row_id : *column_pos_list) {
-                    // TODO
-                    // this is incredibly ugly, but we were told not to use the [] operator.
-                    // any ideas?
-                    const auto& column = referenced_table->get_chunk(row_id.chunk_id).get_column(rc->referenced_column_id());
-                    const T value = type_cast<T>((*column)[row_id.chunk_offset]);
-                    if (_evaluate_scan(value, compare_value)) {
-                        // TODO
-                        // does it pose a problem that row_id is a reference?
-                        position_list->push_back(row_id);
-                    }
-                }
+                appendPositionList(position_list, rc, referenced_table, chunk_id);
             }
             else {
                 throw std::logic_error("Unkown column type.");
@@ -166,6 +98,89 @@ class TableScan : public AbstractOperator {
                   return value < compare_value;
               default:
                   return false;
+          }
+      }
+
+      void appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<ValueColumn<T>> vc, const ChunkID chunk_id) {
+          const auto& values = vc->values();
+          const auto compare_value = opossum::type_cast<T>(_search_value);
+
+          for (auto i = 0u; i < values.size(); ++i) {
+              if (_evaluate_scan(values[i], compare_value)) {
+                  RowID row_id;
+                  row_id.chunk_id = chunk_id;
+                  row_id.chunk_offset = i;
+                  position_list->emplace_back(std::move(row_id));
+              }
+          }
+      }
+
+      void appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<DictionaryColumn<T>> dc, const ChunkID chunk_id) {
+          const auto& id_values = dc->attribute_vector();
+          ValueID dict_id = INVALID_VALUE_ID;
+          bool check_attribute_vector = true;
+          const auto compare_value = opossum::type_cast<T>(_search_value);
+
+          switch (_scan_type){
+              case ScanType::OpEquals:
+                  if(dc->lower_bound(compare_value) == dc->upper_bound(compare_value)) {
+                      check_attribute_vector = false;
+                  } else {
+                      dict_id = dc->lower_bound(compare_value);
+                  }
+                  break;
+              case ScanType::OpNotEquals:
+                  if(dc->lower_bound(compare_value) != dc->upper_bound(compare_value)) {
+                      dict_id = dc->lower_bound(compare_value);
+                  }
+                  // TODO
+                  // in the else case every position will evaluate to true
+                  // maybe cut the checks?
+                  break;
+              case ScanType::OpGreaterThan:
+                  dict_id = dc->upper_bound(compare_value);
+                  _scan_type = ScanType::OpGreaterThanEquals;
+                  break;
+              case ScanType::OpLessThanEquals:
+                  dict_id = dc->upper_bound(compare_value);
+                  _scan_type = ScanType::OpLessThan;
+                  break;
+              case ScanType::OpGreaterThanEquals:
+              case ScanType::OpLessThan:
+                  dict_id = dc->lower_bound(compare_value);
+                  break;
+          }
+
+          if(check_attribute_vector) {
+              // TODO
+              // this is basically a copy. Maybe make a function out of it?
+              for (auto i = 0u; i < id_values->size(); ++i) {
+                  if (_evaluate_scan(id_values->get(i), dict_id)) {
+                      RowID row_id;
+                      row_id.chunk_id = chunk_id;
+                      row_id.chunk_offset = i;
+                      position_list->emplace_back(std::move(row_id));
+                  }
+              }
+          }
+      }
+
+      void appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<ReferenceColumn> rc, std::shared_ptr<const Table>& referenced_table, const ChunkID chunk_id) {
+          const auto& column_pos_list = rc->pos_list();
+          referenced_table = rc->referenced_table();
+          const auto compare_value = opossum::type_cast<T>(_search_value);
+
+          for (const auto& row_id : *column_pos_list) {
+              // TODO
+              // this is incredibly ugly, but we were told not to use the [] operator.
+              // any ideas?
+              const auto& column = referenced_table->get_chunk(row_id.chunk_id).get_column(rc->referenced_column_id());
+              const T value = type_cast<T>((*column)[row_id.chunk_offset]);
+              if (_evaluate_scan(value, compare_value)) {
+                  // TODO
+                  // does it pose a problem that row_id is a reference?
+                  position_list->push_back(row_id);
+              }
           }
       }
 
