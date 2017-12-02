@@ -130,6 +130,13 @@ namespace opossum {
    EXPECT_TABLE_EQ(scan->get_output(), expected_result);
  }
 
+  TEST_F(OperatorsTableScanTest, TableScanGetters) {
+    auto scan = std::make_shared<TableScan>(_table_wrapper, ColumnID{0}, ScanType::OpGreaterThanEquals, 1234);
+    EXPECT_EQ(scan->column_id(), ColumnID{0});
+    EXPECT_EQ(scan->scan_type(), ScanType::OpGreaterThanEquals);
+    EXPECT_EQ(scan->search_value(), AllTypeVariant(1234));
+  }
+
  TEST_F(OperatorsTableScanTest, ScanOnDictColumn) {
    // we do not need to check for a non existing value, because that happens automatically when we scan the second chunk
 

@@ -26,6 +26,6 @@ class GetTable : public AbstractOperator {
       return _output;
   }
 
-    const std::string& _table_name;
+    const std::string _table_name;
 };
 }  // namespace opossum

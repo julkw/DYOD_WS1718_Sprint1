@@ -118,44 +118,50 @@ class TableScan : public AbstractOperator {
       void _appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<DictionaryColumn<T>> dc, const ChunkID chunk_id) {
           const auto& id_values = dc->attribute_vector();
           ValueID dict_id = INVALID_VALUE_ID;
-          bool check_attribute_vector = true;
+          bool all_false = false;
+          bool all_true = false;
           const auto compare_value = opossum::type_cast<T>(_search_value);
 
           switch (_scan_type){
-              case ScanType::OpEquals:
-                  if(dc->lower_bound(compare_value) == dc->upper_bound(compare_value)) {
-                      check_attribute_vector = false;
-                  } else {
-                      dict_id = dc->lower_bound(compare_value);
-                  }
-                  break;
-              case ScanType::OpNotEquals:
-                  if(dc->lower_bound(compare_value) != dc->upper_bound(compare_value)) {
-                      dict_id = dc->lower_bound(compare_value);
-                  }
-                  // TODO
-                  // in the else case every position will evaluate to true
-                  // maybe cut the checks?
-                  break;
-              case ScanType::OpGreaterThan:
+              case ScanType::OpEquals: {
+                  auto lower_bound = dc->lower_bound(compare_value);
+                  dict_id = lower_bound;
+                  all_false = lower_bound == dc->upper_bound(compare_value);
+                  break; }
+              case ScanType::OpNotEquals: {
+                  auto lower_bound = dc->lower_bound(compare_value);
+                  dict_id = lower_bound;
+                  all_true = lower_bound == dc->upper_bound(compare_value);
+                  break; }
+              case ScanType::OpGreaterThan: {
                   dict_id = dc->upper_bound(compare_value);
                   _scan_type = ScanType::OpGreaterThanEquals;
-                  break;
-              case ScanType::OpLessThanEquals:
+                  all_false = dict_id == INVALID_VALUE_ID;
+                  all_true = dict_id == ValueID(0);
+                  break; }
+              case ScanType::OpLessThanEquals: {
                   dict_id = dc->upper_bound(compare_value);
                   _scan_type = ScanType::OpLessThan;
-                  break;
-              case ScanType::OpGreaterThanEquals:
-              case ScanType::OpLessThan:
+                  all_false = dict_id == ValueID(0);
+                  all_true = dict_id == INVALID_VALUE_ID;
+                  break; }
+              case ScanType::OpGreaterThanEquals: {
                   dict_id = dc->lower_bound(compare_value);
-                  break;
+                  all_true = dict_id == ValueID(0);
+                  all_false = dict_id == INVALID_VALUE_ID;
+                  break; }
+              case ScanType::OpLessThan: {
+                  dict_id = dc->lower_bound(compare_value);
+                  all_true = dict_id == INVALID_VALUE_ID;
+                  all_false = dict_id == ValueID(0);
+                  break; }
           }
 
-          if(check_attribute_vector) {
+          if(!all_false) {
               // TODO
               // this is basically a copy. Maybe make a function out of it?
               for (auto i = 0u; i < id_values->size(); ++i) {
-                  if (_evaluate_scan(id_values->get(i), dict_id)) {
+                  if (all_true || _evaluate_scan(id_values->get(i), dict_id)) {
                       RowID row_id;
                       row_id.chunk_id = chunk_id;
                       row_id.chunk_offset = i;
@@ -191,8 +197,6 @@ class TableScan : public AbstractOperator {
           else {
               throw std::logic_error("Column id not a value or dictionary column.");
           }
-
-          return T();
       }
 
       std::shared_ptr<const Table> _table;
