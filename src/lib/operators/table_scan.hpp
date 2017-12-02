@@ -51,13 +51,13 @@ class TableScan : public AbstractOperator {
             const auto& column = chunk.get_column(_column_id);
 
             if (auto vc = std::dynamic_pointer_cast<ValueColumn<T>>(column)) {
-                appendPositionList(position_list, vc, chunk_id);
+                _appendPositionList(position_list, vc, chunk_id);
             }
             else if (auto dc = std::dynamic_pointer_cast<DictionaryColumn<T>>(column)) {
-                appendPositionList(position_list, dc, chunk_id);
+                _appendPositionList(position_list, dc, chunk_id);
             }
             else if (auto rc = std::dynamic_pointer_cast<ReferenceColumn>(column)) {
-                appendPositionList(position_list, rc, referenced_table, chunk_id);
+                _appendPositionList(position_list, rc, referenced_table, chunk_id);
             }
             else {
                 throw std::logic_error("Unkown column type.");
@@ -97,11 +97,11 @@ class TableScan : public AbstractOperator {
               case ScanType::OpLessThan:
                   return value < compare_value;
               default:
-                  return false;
+                  throw std::logic_error("Unknown scan type.");
           }
       }
 
-      void appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<ValueColumn<T>> vc, const ChunkID chunk_id) {
+      void _appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<ValueColumn<T>> vc, const ChunkID chunk_id) {
           const auto& values = vc->values();
           const auto compare_value = opossum::type_cast<T>(_search_value);
 
@@ -115,7 +115,7 @@ class TableScan : public AbstractOperator {
           }
       }
 
-      void appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<DictionaryColumn<T>> dc, const ChunkID chunk_id) {
+      void _appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<DictionaryColumn<T>> dc, const ChunkID chunk_id) {
           const auto& id_values = dc->attribute_vector();
           ValueID dict_id = INVALID_VALUE_ID;
           bool check_attribute_vector = true;
@@ -165,23 +165,34 @@ class TableScan : public AbstractOperator {
           }
       }
 
-      void appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<ReferenceColumn> rc, std::shared_ptr<const Table>& referenced_table, const ChunkID chunk_id) {
+      void _appendPositionList(std::shared_ptr<PosList> position_list, std::shared_ptr<ReferenceColumn> rc, std::shared_ptr<const Table>& referenced_table, const ChunkID chunk_id) {
           const auto& column_pos_list = rc->pos_list();
           referenced_table = rc->referenced_table();
           const auto compare_value = opossum::type_cast<T>(_search_value);
 
           for (const auto& row_id : *column_pos_list) {
-              // TODO
-              // this is incredibly ugly, but we were told not to use the [] operator.
-              // any ideas?
-              const auto& column = referenced_table->get_chunk(row_id.chunk_id).get_column(rc->referenced_column_id());
-              const T value = type_cast<T>((*column)[row_id.chunk_offset]);
+              const T value = _evaluateReferenceColumn(rc, row_id);
               if (_evaluate_scan(value, compare_value)) {
-                  // TODO
-                  // does it pose a problem that row_id is a reference?
                   position_list->push_back(row_id);
               }
           }
+      }
+
+      T _evaluateReferenceColumn(std::shared_ptr<ReferenceColumn> rc, const RowID& row_id) {
+          const auto& chunk = rc->referenced_table()->get_chunk(row_id.chunk_id);
+          const auto& column = chunk.get_column(rc->referenced_column_id());
+
+          if (auto vc = std::dynamic_pointer_cast<ValueColumn<T>>(column)) {
+              return vc->values()[row_id.chunk_offset];
+          }
+          else if (auto dc = std::dynamic_pointer_cast<DictionaryColumn<T>>(column)) {
+              return dc->get(row_id.chunk_offset);
+          }
+          else {
+              throw std::logic_error("Column id not a value or dictionary column.");
+          }
+
+          return T();
       }
 
       std::shared_ptr<const Table> _table;
