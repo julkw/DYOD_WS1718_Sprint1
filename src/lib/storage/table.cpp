@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include "dictionary_column.hpp"
 #include "value_column.hpp"
 
 #include "resolve_type.hpp"
@@ -47,7 +48,7 @@ void Table::append(std::vector<AllTypeVariant> values) {
 void Table::create_new_chunk() {
   Chunk chunk;
 
-  for (auto& column_type : _column_types) {
+  for (const auto& column_type : _column_types) {
     chunk.add_column(make_shared_by_column_type<BaseColumn, ValueColumn>(column_type));
   }
 
@@ -90,6 +91,20 @@ Chunk& Table::get_chunk(ChunkID chunk_id) { return _chunks.at(chunk_id); }
 
 const Chunk& Table::get_chunk(ChunkID chunk_id) const { return _chunks.at(chunk_id); }
 
-void Table::compress_chunk(ChunkID chunk_id) { throw std::runtime_error("TODO"); }
+void Table::compress_chunk(ChunkID chunk_id) {
+  DebugAssert(chunk_id < _chunks.size(), "Attempting to compress out-of-range chunk.");
+
+  Chunk chunk;
+  auto& old_chunk = _chunks[chunk_id];
+
+  auto id = 0;
+  for (const auto& column_type : _column_types) {
+    chunk.add_column(
+        make_shared_by_column_type<BaseColumn, DictionaryColumn>(column_type, old_chunk.get_column(ColumnID(id))));
+    ++id;
+  }
+
+  std::swap(old_chunk, chunk);
+}
 
 }  // namespace opossum

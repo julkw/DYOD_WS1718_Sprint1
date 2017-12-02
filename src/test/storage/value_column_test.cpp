@@ -47,4 +47,9 @@ TEST_F(StorageValueColumnTest, AddValueOfDifferentType) {
   EXPECT_THROW(vc_double.append("Hi"), std::exception);
 }
 
+TEST_F(StorageValueColumnTest, GetValues) {
+  vc_int.append(3);
+  EXPECT_EQ(opossum::type_cast<int>(vc_int[0]), 3);
+}
+
 }  // namespace opossum

@@ -50,4 +50,11 @@ TEST_F(StorageStorageManagerTest, HasTable) {
   EXPECT_EQ(sm.has_table("first_table"), true);
 }
 
+TEST_F(StorageStorageManagerTest, TableNames) {
+  auto& sm = StorageManager::get();
+  const auto& table_names = sm.table_names();
+  EXPECT_EQ(table_names[0], "first_table");
+  EXPECT_EQ(table_names[1], "second_table");
+}
+
 }  // namespace opossum
