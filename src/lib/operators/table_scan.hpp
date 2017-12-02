@@ -45,6 +45,7 @@ class TableScan : public AbstractOperator {
       std::shared_ptr<const Table> on_execute() override {
           const auto position_list = std::make_shared<PosList>();
           const auto compare_value = opossum::type_cast<T>(_search_value);
+          auto referenced_table = _table;
 
           for (auto chunk_id = ChunkID(0); chunk_id < _table->chunk_count(); ++chunk_id) {
             const auto& chunk = _table->get_chunk(chunk_id);
@@ -113,7 +114,7 @@ class TableScan : public AbstractOperator {
             }
             else if (auto rc = std::dynamic_pointer_cast<ReferenceColumn>(column)) {
                 const auto& column_pos_list = rc->pos_list();
-                const auto& referenced_table = rc->referenced_table();
+                referenced_table = rc->referenced_table();
                 for (const auto& row_id : *column_pos_list) {
                     // TODO
                     // this is incredibly ugly, but we were told not to use the [] operator.
@@ -139,7 +140,7 @@ class TableScan : public AbstractOperator {
           for (auto column_id = ColumnID(0); column_id < _table->col_count(); ++column_id) {
             result_table->add_column(_table->column_name(column_id), _table->column_type(column_id));
 
-            const auto column = std::make_shared<ReferenceColumn>(_table, column_id, position_list);
+            const auto column = std::make_shared<ReferenceColumn>(referenced_table, column_id, position_list);
             chunk.add_column(column);
           }
 
