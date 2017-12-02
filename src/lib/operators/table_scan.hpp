@@ -84,14 +84,12 @@ class TableScan : public AbstractOperator {
                         // maybe cut the checks?
                         break;
                     case ScanType::OpGreaterThan:
+                        dict_id = dc->upper_bound(compare_value);
+                        _scan_type = ScanType::OpGreaterThanEquals;
+                        break;
                     case ScanType::OpLessThanEquals:
-                        if(dc->lower_bound(compare_value) == dc->upper_bound(compare_value)) {
-                            dict_id = dc->lower_bound(compare_value) - 1;
-                            // TODO
-                            // Does this throw errors when lower_bound is 0?
-                        } else {
-                            dict_id = dc->lower_bound(compare_value);
-                        }
+                        dict_id = dc->upper_bound(compare_value);
+                        _scan_type = ScanType::OpLessThan;
                         break;
                     case ScanType::OpGreaterThanEquals:
                     case ScanType::OpLessThan:
@@ -192,7 +190,7 @@ class TableScan : public AbstractOperator {
 
       std::shared_ptr<const Table> _table;
       const ColumnID _column_id;
-      const ScanType _scan_type;
+      ScanType _scan_type;
       const AllTypeVariant _search_value;
   };
 
